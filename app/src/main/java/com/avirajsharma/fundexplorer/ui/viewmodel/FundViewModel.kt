@@ -4,13 +4,18 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.avirajsharma.fundexplorer.data.model.FundDetailResponse
 import com.avirajsharma.fundexplorer.data.model.FundSearchResult
+import com.avirajsharma.fundexplorer.data.model.WatchlistFolder
 import com.avirajsharma.fundexplorer.data.repository.FundRepository
-import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.StateFlow
-import kotlinx.coroutines.flow.asStateFlow
+import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
+import java.util.UUID
+import javax.inject.Inject
 
-class FundViewModel(private val repository: FundRepository) : ViewModel() {
+@HiltViewModel
+class FundViewModel @Inject constructor(
+    private val repository: FundRepository
+) : ViewModel() {
 
     private val _searchResults = MutableStateFlow<List<FundSearchResult>>(emptyList())
     val searchResults: StateFlow<List<FundSearchResult>> = _searchResults.asStateFlow()
@@ -21,6 +26,9 @@ class FundViewModel(private val repository: FundRepository) : ViewModel() {
     private val _fundDetails = MutableStateFlow<FundDetailResponse?>(null)
     val fundDetails: StateFlow<FundDetailResponse?> = _fundDetails.asStateFlow()
 
+    val watchlistFolders: StateFlow<List<WatchlistFolder>> = repository.getWatchlistFolders()
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
+
     private val _isLoading = MutableStateFlow(false)
     val isLoading: StateFlow<Boolean> = _isLoading.asStateFlow()
 
@@ -30,13 +38,13 @@ class FundViewModel(private val repository: FundRepository) : ViewModel() {
     fun searchFunds(query: String) {
         viewModelScope.launch {
             _isLoading.value = true
+            _error.value = null
             repository.searchFunds(query)
                 .onSuccess {
                     _searchResults.value = it
-                    _error.value = null
                 }
                 .onFailure {
-                    _error.value = it.message ?: "Unknown error"
+                    _error.value = it.message ?: "Search failed"
                 }
             _isLoading.value = false
         }
@@ -46,14 +54,18 @@ class FundViewModel(private val repository: FundRepository) : ViewModel() {
         val categories = listOf("Index", "Bluechip", "Tax")
         viewModelScope.launch {
             _isLoading.value = true
-            val results = mutableMapOf<String, List<FundSearchResult>>()
+            _error.value = null
             categories.forEach { category ->
-                repository.getFundsByCategory(category)
-                    .onSuccess {
-                        results[category] = it.take(10) // Limit for explore screen
+                repository.getFundsByCategory(category).collect { result ->
+                    result.onSuccess { funds ->
+                        val current = _categoryFunds.value.toMutableMap()
+                        current[category] = funds
+                        _categoryFunds.value = current
+                    }.onFailure {
+                        _error.value = it.message ?: "Failed to fetch $category funds"
                     }
+                }
             }
-            _categoryFunds.value = results
             _isLoading.value = false
         }
     }
@@ -61,15 +73,33 @@ class FundViewModel(private val repository: FundRepository) : ViewModel() {
     fun fetchFundDetails(schemeCode: Int) {
         viewModelScope.launch {
             _isLoading.value = true
+            _error.value = null
             repository.getFundDetails(schemeCode)
                 .onSuccess {
                     _fundDetails.value = it
-                    _error.value = null
                 }
                 .onFailure {
-                    _error.value = it.message ?: "Unknown error"
+                    _error.value = it.message ?: "Failed to fetch details"
                 }
             _isLoading.value = false
+        }
+    }
+
+    fun createWatchlistFolder(name: String) {
+        viewModelScope.launch {
+            repository.createFolder(name, UUID.randomUUID().toString())
+        }
+    }
+
+    fun addFundToWatchlist(folderId: String, fund: FundSearchResult) {
+        viewModelScope.launch {
+            repository.addFundToFolder(folderId, fund)
+        }
+    }
+
+    fun removeFundFromWatchlist(folderId: String, schemeCode: Int) {
+        viewModelScope.launch {
+            repository.removeFundFromFolder(folderId, schemeCode)
         }
     }
 }

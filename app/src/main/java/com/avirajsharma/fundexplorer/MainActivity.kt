@@ -4,9 +4,13 @@ import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.asPaddingValues
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.systemBars
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Home
+import androidx.compose.material.icons.filled.List
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material3.Icon
 import androidx.compose.material3.NavigationBar
@@ -16,7 +20,7 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
-import androidx.lifecycle.viewmodel.compose.viewModel
+import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavDestination.Companion.hierarchy
 import androidx.navigation.NavGraph.Companion.findStartDestination
 import androidx.navigation.NavType
@@ -25,52 +29,35 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
-import com.avirajsharma.fundexplorer.data.api.MFApi
-import com.avirajsharma.fundexplorer.data.repository.FundRepository
 import com.avirajsharma.fundexplorer.ui.screen.ExploreScreen
 import com.avirajsharma.fundexplorer.ui.screen.FundDetailScreen
 import com.avirajsharma.fundexplorer.ui.screen.SearchScreen
+import com.avirajsharma.fundexplorer.ui.screen.WatchlistScreen
+import com.avirajsharma.fundexplorer.ui.screen.WatchlistFolderDetailScreen
 import com.avirajsharma.fundexplorer.ui.theme.FundExplorerTheme
 import com.avirajsharma.fundexplorer.ui.viewmodel.FundViewModel
-import com.avirajsharma.fundexplorer.ui.viewmodel.FundViewModelFactory
-import okhttp3.OkHttpClient
-import okhttp3.logging.HttpLoggingInterceptor
-import retrofit2.Retrofit
-import retrofit2.converter.gson.GsonConverterFactory
+import dagger.hilt.android.AndroidEntryPoint
 
+@AndroidEntryPoint
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
 
-        val logging = HttpLoggingInterceptor().apply {
-            level = HttpLoggingInterceptor.Level.BODY
-        }
-        val client = OkHttpClient.Builder()
-            .addInterceptor(logging)
-            .build()
-
-        val api = Retrofit.Builder()
-            .baseUrl(MFApi.BASE_URL)
-            .addConverterFactory(GsonConverterFactory.create())
-            .client(client)
-            .build()
-            .create(MFApi::class.java)
-
-        val repository = FundRepository(api)
-        val factory = FundViewModelFactory(repository)
-
         setContent {
             FundExplorerTheme {
                 val navController = rememberNavController()
-                val viewModel: FundViewModel = viewModel(factory = factory)
+                val viewModel: FundViewModel = hiltViewModel()
+
+                val navBackStackEntry by navController.currentBackStackEntryAsState()
+                val currentDestination = navBackStackEntry?.destination
+                val currentRoute = currentDestination?.route
+
+                val showBottomBar = items.any { it.route == currentRoute }
 
                 Scaffold(
                     bottomBar = {
-                        val navBackStackEntry by navController.currentBackStackEntryAsState()
-                        val currentDestination = navBackStackEntry?.destination
-
-                        if (currentDestination?.route != "detail/{schemeCode}") {
+                        if (showBottomBar) {
                             NavigationBar {
                                 items.forEach { screen ->
                                     NavigationBarItem(
@@ -90,12 +77,16 @@ class MainActivity : ComponentActivity() {
                                 }
                             }
                         }
-                    }
+                    },
+                    // Set contentWindowInsets to zero to avoid double padding for top insets
+                    // as each screen handles its own TopAppBar and system insets.
+                    contentWindowInsets = WindowInsets(0, 0, 0, 0)
                 ) { innerPadding ->
                     NavHost(
                         navController = navController,
                         startDestination = Screen.Explore.route,
-                        modifier = Modifier.padding(innerPadding)
+                        // Only apply bottom padding for the NavigationBar if shown
+                        modifier = Modifier.padding(bottom = innerPadding.calculateBottomPadding())
                     ) {
                         composable(Screen.Explore.route) {
                             ExploreScreen(viewModel) { schemeCode ->
@@ -106,6 +97,23 @@ class MainActivity : ComponentActivity() {
                             SearchScreen(viewModel) { schemeCode ->
                                 navController.navigate("detail/$schemeCode")
                             }
+                        }
+                        composable(Screen.Watchlist.route) {
+                            WatchlistScreen(viewModel) { folderId ->
+                                navController.navigate("watchlist/$folderId")
+                            }
+                        }
+                        composable(
+                            route = "watchlist/{folderId}",
+                            arguments = listOf(navArgument("folderId") { type = NavType.StringType })
+                        ) { backStackEntry ->
+                            val folderId = backStackEntry.arguments?.getString("folderId") ?: ""
+                            WatchlistFolderDetailScreen(folderId, viewModel, 
+                                onFundClick = { schemeCode ->
+                                    navController.navigate("detail/$schemeCode")
+                                },
+                                onBack = { navController.popBackStack() }
+                            )
                         }
                         composable(
                             route = "detail/{schemeCode}",
@@ -126,6 +134,7 @@ class MainActivity : ComponentActivity() {
 sealed class Screen(val route: String, val label: String, val icon: ImageVector) {
     object Explore : Screen("explore", "Explore", Icons.Default.Home)
     object Search : Screen("search", "Search", Icons.Default.Search)
+    object Watchlist : Screen("watchlist", "Watchlist", Icons.Default.List)
 }
 
-val items = listOf(Screen.Explore, Screen.Search)
+val items = listOf(Screen.Explore, Screen.Search, Screen.Watchlist)
