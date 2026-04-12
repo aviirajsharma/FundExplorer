@@ -5,12 +5,10 @@ import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.compose.foundation.layout.WindowInsets
-import androidx.compose.foundation.layout.asPaddingValues
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.systemBars
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.BookmarkBorder
 import androidx.compose.material.icons.filled.Home
-import androidx.compose.material.icons.filled.List
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material3.Icon
 import androidx.compose.material3.NavigationBar
@@ -32,8 +30,9 @@ import androidx.navigation.navArgument
 import com.avirajsharma.fundexplorer.ui.screen.ExploreScreen
 import com.avirajsharma.fundexplorer.ui.screen.FundDetailScreen
 import com.avirajsharma.fundexplorer.ui.screen.SearchScreen
-import com.avirajsharma.fundexplorer.ui.screen.WatchlistScreen
+import com.avirajsharma.fundexplorer.ui.screen.ViewAllScreen
 import com.avirajsharma.fundexplorer.ui.screen.WatchlistFolderDetailScreen
+import com.avirajsharma.fundexplorer.ui.screen.WatchlistScreen
 import com.avirajsharma.fundexplorer.ui.theme.FundExplorerTheme
 import com.avirajsharma.fundexplorer.ui.viewmodel.FundViewModel
 import dagger.hilt.android.AndroidEntryPoint
@@ -78,20 +77,26 @@ class MainActivity : ComponentActivity() {
                             }
                         }
                     },
-                    // Set contentWindowInsets to zero to avoid double padding for top insets
-                    // as each screen handles its own TopAppBar and system insets.
                     contentWindowInsets = WindowInsets(0, 0, 0, 0)
                 ) { innerPadding ->
                     NavHost(
                         navController = navController,
                         startDestination = Screen.Explore.route,
-                        // Only apply bottom padding for the NavigationBar if shown
                         modifier = Modifier.padding(bottom = innerPadding.calculateBottomPadding())
                     ) {
                         composable(Screen.Explore.route) {
-                            ExploreScreen(viewModel) { schemeCode ->
-                                navController.navigate("detail/$schemeCode")
-                            }
+                            ExploreScreen(
+                                viewModel = viewModel,
+                                onFundClick = { schemeCode ->
+                                    navController.navigate("detail/$schemeCode")
+                                },
+                                onViewAllClick = { category ->
+                                    navController.navigate("view_all/$category")
+                                },
+                                onSearchClick = {
+                                    navController.navigate(Screen.Search.route)
+                                }
+                            )
                         }
                         composable(Screen.Search.route) {
                             SearchScreen(viewModel) { schemeCode ->
@@ -99,16 +104,47 @@ class MainActivity : ComponentActivity() {
                             }
                         }
                         composable(Screen.Watchlist.route) {
-                            WatchlistScreen(viewModel) { folderId ->
-                                navController.navigate("watchlist/$folderId")
-                            }
+                            WatchlistScreen(
+                                viewModel = viewModel,
+                                onFolderClick = { folderId ->
+                                    navController.navigate("watchlist/$folderId")
+                                },
+                                onExploreClick = {
+                                    navController.navigate(Screen.Explore.route) {
+                                        popUpTo(navController.graph.findStartDestination().id) {
+                                            saveState = true
+                                        }
+                                        launchSingleTop = true
+                                        restoreState = true
+                                    }
+                                }
+                            )
+                        }
+                        composable(
+                            route = "view_all/{category}",
+                            arguments = listOf(navArgument("category") {
+                                type = NavType.StringType
+                            })
+                        ) { backStackEntry ->
+                            val category = backStackEntry.arguments?.getString("category") ?: ""
+                            ViewAllScreen(
+                                category = category,
+                                viewModel = viewModel,
+                                onFundClick = { schemeCode ->
+                                    navController.navigate("detail/$schemeCode")
+                                },
+                                onBack = { navController.popBackStack() }
+                            )
                         }
                         composable(
                             route = "watchlist/{folderId}",
-                            arguments = listOf(navArgument("folderId") { type = NavType.StringType })
+                            arguments = listOf(navArgument("folderId") {
+                                type = NavType.StringType
+                            })
                         ) { backStackEntry ->
                             val folderId = backStackEntry.arguments?.getString("folderId") ?: ""
-                            WatchlistFolderDetailScreen(folderId, viewModel, 
+                            WatchlistFolderDetailScreen(
+                                folderId, viewModel,
                                 onFundClick = { schemeCode ->
                                     navController.navigate("detail/$schemeCode")
                                 },
@@ -132,9 +168,9 @@ class MainActivity : ComponentActivity() {
 }
 
 sealed class Screen(val route: String, val label: String, val icon: ImageVector) {
-    object Explore : Screen("explore", "Explore", Icons.Default.Home)
-    object Search : Screen("search", "Search", Icons.Default.Search)
-    object Watchlist : Screen("watchlist", "Watchlist", Icons.Default.List)
+    data object Explore : Screen("explore", "Explore", Icons.Default.Home)
+    data object Search : Screen("search", "Search", Icons.Default.Search)
+    data object Watchlist : Screen("watchlist", "Watchlist", Icons.Default.BookmarkBorder)
 }
 
-val items = listOf(Screen.Explore, Screen.Search, Screen.Watchlist)
+val items = listOf(Screen.Explore, Screen.Watchlist)

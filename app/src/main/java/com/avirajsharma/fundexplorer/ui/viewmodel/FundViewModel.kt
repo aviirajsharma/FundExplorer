@@ -7,7 +7,13 @@ import com.avirajsharma.fundexplorer.data.model.FundSearchResult
 import com.avirajsharma.fundexplorer.data.model.WatchlistFolder
 import com.avirajsharma.fundexplorer.data.repository.FundRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
-import kotlinx.coroutines.flow.*
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.SharingStarted
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import java.util.UUID
 import javax.inject.Inject
@@ -51,12 +57,20 @@ class FundViewModel @Inject constructor(
     }
 
     fun fetchExploreData() {
-        val categories = listOf("Index", "Bluechip", "Tax")
+        val categories =
+            listOf("Index Funds", "Bluechip Funds", "Tax Saver (ELSS)", "Large Cap Funds")
         viewModelScope.launch {
             _isLoading.value = true
             _error.value = null
             categories.forEach { category ->
-                repository.getFundsByCategory(category).collect { result ->
+                val query = when (category) {
+                    "Index Funds" -> "Index"
+                    "Bluechip Funds" -> "Bluechip"
+                    "Tax Saver (ELSS)" -> "Tax"
+                    "Large Cap Funds" -> "Large Cap"
+                    else -> category
+                }
+                repository.getFundsByCategory(query).collect { result ->
                     result.onSuccess { funds ->
                         val current = _categoryFunds.value.toMutableMap()
                         current[category] = funds
@@ -66,6 +80,15 @@ class FundViewModel @Inject constructor(
                     }
                 }
             }
+
+            repository.getFundsByCategory("Equity").collect { result ->
+                result.onSuccess { funds ->
+                    val current = _categoryFunds.value.toMutableMap()
+                    current["All Funds"] = funds
+                    _categoryFunds.value = current
+                }
+            }
+
             _isLoading.value = false
         }
     }
@@ -100,6 +123,12 @@ class FundViewModel @Inject constructor(
     fun removeFundFromWatchlist(folderId: String, schemeCode: Int) {
         viewModelScope.launch {
             repository.removeFundFromFolder(folderId, schemeCode)
+        }
+    }
+
+    fun isFundInWatchlist(schemeCode: Int): Flow<Boolean> {
+        return watchlistFolders.map { folders ->
+            folders.any { folder -> folder.funds.any { it.schemeCode == schemeCode } }
         }
     }
 }

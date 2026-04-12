@@ -32,7 +32,6 @@ class FundRepository @Inject constructor(
     }
 
     suspend fun getFundsByCategory(category: String): Flow<Result<List<FundSearchResult>>> = flow {
-        // First, try to emit cached data
         val cached = dao.getExploreCache(category)
         if (cached != null) {
             val type = object : TypeToken<List<FundSearchResult>>() {}.type
@@ -40,7 +39,6 @@ class FundRepository @Inject constructor(
             emit(Result.success(funds))
         }
 
-        // Then, fetch from API and update cache
         val query = when (category.lowercase()) {
             "index" -> "index"
             "bluechip" -> "bluechip"
@@ -64,7 +62,6 @@ class FundRepository @Inject constructor(
         }
     }.flowOn(Dispatchers.IO)
 
-    // Watchlist Persistence
     @OptIn(ExperimentalCoroutinesApi::class)
     fun getWatchlistFolders(): Flow<List<WatchlistFolder>> {
         return dao.getAllFolders().flatMapLatest { folderEntities ->
