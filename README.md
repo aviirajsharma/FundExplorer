@@ -1,6 +1,8 @@
 # Fund Explorer
 
-A modern Android application designed to help users search, explore, and track mutual funds. Built with Jetpack Compose and following modern Android development best practices, it provides a seamless experience for managing your fund watchlists.
+A modern Android application designed to help users search, explore, and track mutual funds. Built
+with Jetpack Compose and following modern Android development best practices, it provides a seamless
+experience for managing your fund watchlists.
 
 ## Download APK
 
@@ -12,28 +14,28 @@ A modern Android application designed to help users search, explore, and track m
 
 <table>
   <tr>
-    <td align="center">
-      <img src="screenshots/home_screen.png" width="180" alt="Home Screen"/>
-      <br><br>
-      <strong>Home Screen</strong>
-    </td>
-    <td align="center">
-      <img src="screenshots/explore_screen.png" width="180" alt="Explore Screen"/>
+<td align="center">
+      <img src="screenshotrecord/1.png" width="180" alt="Explore Screen"/>
       <br><br>
       <strong>Explore Funds</strong>
     </td>
-    <td align="center">
-      <img src="screenshots/search_screen.png" width="180" alt="Search Screen"/>
+<td align="center">
+      <img src="screenshotrecord/2.png" width="180" alt="Home Screen"/>
       <br><br>
-      <strong>Search</strong>
+      <strong>All Funds</strong>
     </td>
     <td align="center">
-      <img src="screenshots/fund_detail.png" width="180" alt="Fund Detail Screen"/>
+      <img src="screenshotrecord/3.png" width="180" alt="Search Screen"/>
+      <br><br>
+      <strong>Search Funds</strong>
+    </td>
+    <td align="center">
+      <img src="screenshotrecord/4.png" width="180" alt="Fund Detail Screen"/>
       <br><br>
       <strong>Fund Details</strong>
     </td>
     <td align="center">
-      <img src="screenshots/watchlist_screen.png" width="180" alt="Watchlist Screen"/>
+      <img src="screenshotrecord/5.png" width="180" alt="Watchlist Screen"/>
       <br><br>
       <strong>Watchlist</strong>
     </td>
@@ -47,8 +49,8 @@ A modern Android application designed to help users search, explore, and track m
 <table>
   <tr>
     <td align="center">
-      <a href="#">
-        🎥 Watch App Demo on YouTube
+      <a href="">
+        🎥 Watch App Demo
       </a>
     </td>
   </tr>
@@ -58,7 +60,8 @@ A modern Android application designed to help users search, explore, and track m
 
 ## Features
 
-- **Explore Funds** — Browse mutual funds categorized by types like Index Funds, Bluechip Funds, Tax Savers (ELSS), and Large Cap Funds.
+- **Explore Funds** — Browse mutual funds categorized by types like Index Funds, Bluechip Funds, Tax
+  Savers (ELSS), and Large Cap Funds.
 - **Search** — Quickly find specific mutual funds using a robust search functionality.
 - **Fund Details** — View comprehensive details about each fund to make informed decisions.
 - **Watchlists** — Create custom watchlist folders to organize and track your favorite funds.
@@ -68,16 +71,17 @@ A modern Android application designed to help users search, explore, and track m
 
 ## Tech Stack
 
-| Layer | Technology |
-|---|---|
-| Language | Kotlin |
-| UI | Jetpack Compose + Material 3 |
-| Architecture | MVVM + Clean Architecture |
-| Dependency Injection | Hilt |
-| Networking | Retrofit + OkHttp + Gson |
-| Local Database | Room |
-| Async | Kotlin Coroutines + Flow |
-| Navigation | Navigation Compose |
+| Layer                | Technology                   |
+|----------------------|------------------------------|
+| Language             | Kotlin                       |
+| UI                   | Jetpack Compose + Material 3 |
+| Architecture         | MVVM + Clean Architecture    |
+| Dependency Injection | Hilt                         |
+| Networking           | Retrofit + OkHttp + Gson     |
+| Local Database       | Room                         |
+| Async                | Kotlin Coroutines + Flow     |
+| Navigation           | Navigation Compose           |
+
  
 ---
 
@@ -90,6 +94,7 @@ app/
 ├── ui/            # Compose screens, components, and ViewModels
 └── navigation/    # Navigation graph and route definitions
 ```
+
  
 ---
 
