@@ -4,6 +4,7 @@ import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
+import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
@@ -15,6 +16,7 @@ import androidx.compose.material3.NavigationBar
 import androidx.compose.material3.NavigationBarItem
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
@@ -35,6 +37,7 @@ import com.avirajsharma.fundexplorer.ui.screen.WatchlistFolderDetailScreen
 import com.avirajsharma.fundexplorer.ui.screen.WatchlistScreen
 import com.avirajsharma.fundexplorer.ui.theme.FundExplorerTheme
 import com.avirajsharma.fundexplorer.ui.viewmodel.FundViewModel
+import com.avirajsharma.fundexplorer.ui.viewmodel.ThemeViewModel
 import dagger.hilt.android.AndroidEntryPoint
 
 @AndroidEntryPoint
@@ -44,7 +47,12 @@ class MainActivity : ComponentActivity() {
         enableEdgeToEdge()
 
         setContent {
-            FundExplorerTheme {
+            val themeViewModel: ThemeViewModel = hiltViewModel()
+            val isDarkModePreference by themeViewModel.isDarkMode.collectAsState()
+            
+            val useDarkTheme = isDarkModePreference ?: isSystemInDarkTheme()
+
+            FundExplorerTheme(darkTheme = useDarkTheme) {
                 val navController = rememberNavController()
                 val viewModel: FundViewModel = hiltViewModel()
 
@@ -87,6 +95,7 @@ class MainActivity : ComponentActivity() {
                         composable(Screen.Explore.route) {
                             ExploreScreen(
                                 viewModel = viewModel,
+                                themeViewModel = themeViewModel,
                                 onFundClick = { schemeCode ->
                                     navController.navigate("detail/$schemeCode")
                                 },

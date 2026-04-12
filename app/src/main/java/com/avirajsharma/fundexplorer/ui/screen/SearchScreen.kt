@@ -33,6 +33,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import com.avirajsharma.fundexplorer.data.model.FundSearchResult
 import com.avirajsharma.fundexplorer.ui.components.AddToWatchlistBottomSheet
@@ -79,8 +80,8 @@ fun SearchScreen(
                 singleLine = true,
                 shape = MaterialTheme.shapes.medium,
                 colors = TextFieldDefaults.colors(
-                    focusedIndicatorColor = androidx.compose.ui.graphics.Color.Transparent,
-                    unfocusedIndicatorColor = androidx.compose.ui.graphics.Color.Transparent
+                    focusedIndicatorColor = Color.Transparent,
+                    unfocusedIndicatorColor = Color.Transparent
                 )
             )
 
@@ -103,7 +104,10 @@ fun SearchScreen(
                             modifier = Modifier
                                 .fillMaxWidth()
                                 .clickable { onFundClick(fund.schemeCode) },
-                            elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+                            elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
+                            colors = CardDefaults.cardColors(
+                                containerColor = MaterialTheme.colorScheme.surface
+                            )
                         ) {
                             Row(
                                 modifier = Modifier
@@ -115,12 +119,14 @@ fun SearchScreen(
                                 Text(
                                     text = fund.schemeName,
                                     modifier = Modifier.weight(1f),
-                                    style = MaterialTheme.typography.bodyLarge
+                                    style = MaterialTheme.typography.bodyLarge,
+                                    color = MaterialTheme.colorScheme.onSurface
                                 )
                                 IconButton(onClick = { selectedFundForWatchlist = fund }) {
                                     Icon(
                                         Icons.Default.BookmarkBorder,
-                                        contentDescription = "Add to Watchlist"
+                                        contentDescription = "Add to Watchlist",
+                                        tint = MaterialTheme.colorScheme.primary
                                     )
                                 }
                             }

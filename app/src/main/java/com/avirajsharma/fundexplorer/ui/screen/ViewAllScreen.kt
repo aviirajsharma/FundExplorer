@@ -35,7 +35,6 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -133,8 +132,8 @@ fun FundListItem(
             .fillMaxWidth()
             .clickable { onClick() },
         shape = RoundedCornerShape(12.dp),
-        colors = CardDefaults.cardColors(containerColor = Color(0xFFFBFBFF)),
-        border = androidx.compose.foundation.BorderStroke(1.dp, Color(0xFFDCDDEB))
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+        border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant)
     ) {
         Row(
             modifier = Modifier
@@ -152,14 +151,14 @@ fun FundListItem(
                     ),
                     maxLines = 2,
                     overflow = TextOverflow.Ellipsis,
-                    color = Color(0xFF1A1A1A)
+                    color = MaterialTheme.colorScheme.onSurface
                 )
                 Spacer(modifier = Modifier.height(4.dp))
                 Text(
                     text = "NAV: ₹${(80..300).random()}.${(10..99).random()}",
                     style = MaterialTheme.typography.bodyMedium.copy(
                         fontWeight = FontWeight.Bold,
-                        color = Color(0xFF0052CC)
+                        color = MaterialTheme.colorScheme.primary
                     )
                 )
             }
@@ -167,7 +166,7 @@ fun FundListItem(
                 Icon(
                     imageVector = Icons.Default.BookmarkBorder,
                     contentDescription = "Add to watchlist",
-                    tint = Color(0xFF0052CC)
+                    tint = MaterialTheme.colorScheme.primary
                 )
             }
         }
