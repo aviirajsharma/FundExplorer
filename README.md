@@ -66,6 +66,7 @@ experience for managing your fund watchlists.
 - **Fund Details** — View comprehensive details about each fund to make informed decisions.
 - **Watchlists** — Create custom watchlist folders to organize and track your favorite funds.
 - **Offline Support** — Local caching of watchlists using Room database.
+- **Theme Support** — Seamlessly switch between Light and Dark modes with persistent preferences using DataStore.
 
 ---
 
