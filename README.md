@@ -6,7 +6,7 @@ experience for managing your fund watchlists.
 
 ## Download APK
 
-[⬇️ Download FundExplorer-v1.0 APK](https://github.com/avirajsharma/FundExplorer/releases)
+[⬇️ Download FundExplorer-v1.0 APK](https://raw.githubusercontent.com/aviirajsharma/FundExplorer/blob/main/apk/fund_explorer.apk)
  
 ---
 
@@ -49,7 +49,7 @@ experience for managing your fund watchlists.
 <table>
   <tr>
     <td align="center">
-      <a href="">
+      <a href="https://drive.google.com/file/d/1ZBdXGmSSRBPOq1MqjNEI9zJfca9pMHTA/view?usp=sharing">
         🎥 Watch App Demo
       </a>
     </td>
