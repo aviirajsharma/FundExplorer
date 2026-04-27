@@ -18,41 +18,56 @@ import kotlinx.coroutines.launch
 import java.util.UUID
 import javax.inject.Inject
 
+sealed interface ExploreUiState {
+    object Loading : ExploreUiState
+    data class Success(val categoryFunds: Map<String, List<FundSearchResult>>) : ExploreUiState
+    data class Error(val message: String) : ExploreUiState
+}
+
+sealed interface SearchUiState {
+    object Idle : SearchUiState
+    object Loading : SearchUiState
+    data class Success(val results: List<FundSearchResult>) : SearchUiState
+    data class Error(val message: String) : SearchUiState
+}
+
+sealed interface FundDetailUiState {
+    object Loading : FundDetailUiState
+    data class Success(val details: FundDetailResponse) : FundDetailUiState
+    data class Error(val message: String) : FundDetailUiState
+}
+
 @HiltViewModel
 class FundViewModel @Inject constructor(
     private val repository: FundRepository
 ) : ViewModel() {
 
-    private val _searchResults = MutableStateFlow<List<FundSearchResult>>(emptyList())
-    val searchResults: StateFlow<List<FundSearchResult>> = _searchResults.asStateFlow()
+    private val _exploreUiState = MutableStateFlow<ExploreUiState>(ExploreUiState.Loading)
+    val exploreUiState: StateFlow<ExploreUiState> = _exploreUiState.asStateFlow()
 
-    private val _categoryFunds = MutableStateFlow<Map<String, List<FundSearchResult>>>(emptyMap())
-    val categoryFunds: StateFlow<Map<String, List<FundSearchResult>>> = _categoryFunds.asStateFlow()
+    private val _searchUiState = MutableStateFlow<SearchUiState>(SearchUiState.Idle)
+    val searchUiState: StateFlow<SearchUiState> = _searchUiState.asStateFlow()
 
-    private val _fundDetails = MutableStateFlow<FundDetailResponse?>(null)
-    val fundDetails: StateFlow<FundDetailResponse?> = _fundDetails.asStateFlow()
+    private val _fundDetailUiState = MutableStateFlow<FundDetailUiState>(FundDetailUiState.Loading)
+    val fundDetailUiState: StateFlow<FundDetailUiState> = _fundDetailUiState.asStateFlow()
 
     val watchlistFolders: StateFlow<List<WatchlistFolder>> = repository.getWatchlistFolders()
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
 
-    private val _isLoading = MutableStateFlow(false)
-    val isLoading: StateFlow<Boolean> = _isLoading.asStateFlow()
-
-    private val _error = MutableStateFlow<String?>(null)
-    val error: StateFlow<String?> = _error.asStateFlow()
-
     fun searchFunds(query: String) {
+        if (query.isBlank()) {
+            _searchUiState.value = SearchUiState.Idle
+            return
+        }
         viewModelScope.launch {
-            _isLoading.value = true
-            _error.value = null
+            _searchUiState.value = SearchUiState.Loading
             repository.searchFunds(query)
                 .onSuccess {
-                    _searchResults.value = it
+                    _searchUiState.value = SearchUiState.Success(it)
                 }
                 .onFailure {
-                    _error.value = it.message ?: "Search failed"
+                    _searchUiState.value = SearchUiState.Error(it.message ?: "Search failed")
                 }
-            _isLoading.value = false
         }
     }
 
@@ -60,51 +75,48 @@ class FundViewModel @Inject constructor(
         val categories =
             listOf("Index Funds", "Bluechip Funds", "Tax Saver (ELSS)", "Large Cap Funds")
         viewModelScope.launch {
-            _isLoading.value = true
-            _error.value = null
-            categories.forEach { category ->
-                val query = when (category) {
-                    "Index Funds" -> "Index"
-                    "Bluechip Funds" -> "Bluechip"
-                    "Tax Saver (ELSS)" -> "Tax"
-                    "Large Cap Funds" -> "Large Cap"
-                    else -> category
-                }
-                repository.getFundsByCategory(query).collect { result ->
-                    result.onSuccess { funds ->
-                        val current = _categoryFunds.value.toMutableMap()
-                        current[category] = funds
-                        _categoryFunds.value = current
-                    }.onFailure {
-                        _error.value = it.message ?: "Failed to fetch $category funds"
+            _exploreUiState.value = ExploreUiState.Loading
+            val categoryData = mutableMapOf<String, List<FundSearchResult>>()
+            
+            try {
+                categories.forEach { category ->
+                    val query = when (category) {
+                        "Index Funds" -> "Index"
+                        "Bluechip Funds" -> "Bluechip"
+                        "Tax Saver (ELSS)" -> "Tax"
+                        "Large Cap Funds" -> "Large Cap"
+                        else -> category
+                    }
+                    repository.getFundsByCategory(query).collect { result ->
+                        result.onSuccess { funds ->
+                            categoryData[category] = funds
+                            _exploreUiState.value = ExploreUiState.Success(categoryData.toMap())
+                        }
                     }
                 }
-            }
 
-            repository.getFundsByCategory("Equity").collect { result ->
-                result.onSuccess { funds ->
-                    val current = _categoryFunds.value.toMutableMap()
-                    current["All Funds"] = funds
-                    _categoryFunds.value = current
+                repository.getFundsByCategory("Equity").collect { result ->
+                    result.onSuccess { funds ->
+                        categoryData["All Funds"] = funds
+                        _exploreUiState.value = ExploreUiState.Success(categoryData.toMap())
+                    }
                 }
+            } catch (e: Exception) {
+                _exploreUiState.value = ExploreUiState.Error(e.message ?: "Failed to fetch explore data")
             }
-
-            _isLoading.value = false
         }
     }
 
     fun fetchFundDetails(schemeCode: Int) {
         viewModelScope.launch {
-            _isLoading.value = true
-            _error.value = null
+            _fundDetailUiState.value = FundDetailUiState.Loading
             repository.getFundDetails(schemeCode)
                 .onSuccess {
-                    _fundDetails.value = it
+                    _fundDetailUiState.value = FundDetailUiState.Success(it)
                 }
                 .onFailure {
-                    _error.value = it.message ?: "Failed to fetch details"
+                    _fundDetailUiState.value = FundDetailUiState.Error(it.message ?: "Failed to fetch details")
                 }
-            _isLoading.value = false
         }
     }
 

@@ -35,22 +35,22 @@ import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.avirajsharma.fundexplorer.data.model.FundSearchResult
 import com.avirajsharma.fundexplorer.ui.components.AddToWatchlistBottomSheet
 import com.avirajsharma.fundexplorer.ui.components.ErrorState
 import com.avirajsharma.fundexplorer.ui.components.LoadingState
+import com.avirajsharma.fundexplorer.ui.viewmodel.ExploreUiState
 import com.avirajsharma.fundexplorer.ui.viewmodel.FundViewModel
 import com.avirajsharma.fundexplorer.ui.viewmodel.ThemeViewModel
 
@@ -63,18 +63,16 @@ fun ExploreScreen(
     onViewAllClick: (String) -> Unit,
     onSearchClick: () -> Unit
 ) {
-    val categoryFunds by viewModel.categoryFunds.collectAsState()
-    val isLoading by viewModel.isLoading.collectAsState()
-    val error by viewModel.error.collectAsState()
-    val watchlistFolders by viewModel.watchlistFolders.collectAsState()
-    val isDarkModePreference by themeViewModel.isDarkMode.collectAsState()
+    val exploreUiState by viewModel.exploreUiState.collectAsStateWithLifecycle()
+    val watchlistFolders by viewModel.watchlistFolders.collectAsStateWithLifecycle()
+    val isDarkModePreference by themeViewModel.isDarkMode.collectAsStateWithLifecycle()
     
     val isDark = isDarkModePreference ?: isSystemInDarkTheme()
 
     var selectedFundForWatchlist by remember { mutableStateOf<FundSearchResult?>(null) }
 
     LaunchedEffect(Unit) {
-        if (categoryFunds.isEmpty()) {
+        if (exploreUiState is ExploreUiState.Loading) {
             viewModel.fetchExploreData()
         }
     }
@@ -122,31 +120,36 @@ fun ExploreScreen(
         containerColor = MaterialTheme.colorScheme.background
     ) { paddingValues ->
         Box(modifier = Modifier.padding(paddingValues)) {
-            if (isLoading && categoryFunds.isEmpty()) {
-                LoadingState()
-            } else if (error != null && categoryFunds.isEmpty()) {
-                ErrorState(
-                    message = error ?: "Unknown error",
-                    onRetry = { viewModel.fetchExploreData() })
-            } else {
-                LazyColumn(
-                    modifier = Modifier.fillMaxSize(),
-                    verticalArrangement = Arrangement.spacedBy(16.dp),
-                    contentPadding = PaddingValues(bottom = 24.dp)
-                ) {
-                    item {
-                        SearchBarPlaceholder(onClick = onSearchClick)
-                    }
-
-                    categoryFunds.forEach { (category, funds) ->
+            when (val state = exploreUiState) {
+                is ExploreUiState.Loading -> {
+                    LoadingState()
+                }
+                is ExploreUiState.Error -> {
+                    ErrorState(
+                        message = state.message,
+                        onRetry = { viewModel.fetchExploreData() }
+                    )
+                }
+                is ExploreUiState.Success -> {
+                    LazyColumn(
+                        modifier = Modifier.fillMaxSize(),
+                        verticalArrangement = Arrangement.spacedBy(16.dp),
+                        contentPadding = PaddingValues(bottom = 24.dp)
+                    ) {
                         item {
-                            CategorySection(
-                                category = category,
-                                funds = funds.take(4),
-                                onFundClick = onFundClick,
-                                onViewAllClick = { onViewAllClick(category) },
-                                onAddClick = { selectedFundForWatchlist = it }
-                            )
+                            SearchBarPlaceholder(onClick = onSearchClick)
+                        }
+
+                        state.categoryFunds.forEach { (category, funds) ->
+                            item {
+                                CategorySection(
+                                    category = category,
+                                    funds = funds.take(4),
+                                    onFundClick = onFundClick,
+                                    onViewAllClick = { onViewAllClick(category) },
+                                    onAddClick = { selectedFundForWatchlist = it }
+                                )
+                            }
                         }
                     }
                 }
@@ -318,8 +321,7 @@ fun FundCard(
                 ) {
                     Icon(
                         imageVector = Icons.Default.BookmarkBorder,
-                        contentDescription = "Add to watchlist",
-                        tint = MaterialTheme.colorScheme.primary
+                        contentDescription = "Add to Watchlist"
                     )
                 }
             }

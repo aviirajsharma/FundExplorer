@@ -28,7 +28,6 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -39,11 +38,13 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.avirajsharma.fundexplorer.data.model.FundSearchResult
 import com.avirajsharma.fundexplorer.ui.components.AddToWatchlistBottomSheet
 import com.avirajsharma.fundexplorer.ui.components.ErrorState
 import com.avirajsharma.fundexplorer.ui.components.LineChart
 import com.avirajsharma.fundexplorer.ui.components.LoadingState
+import com.avirajsharma.fundexplorer.ui.viewmodel.FundDetailUiState
 import com.avirajsharma.fundexplorer.ui.viewmodel.FundViewModel
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -53,11 +54,9 @@ fun FundDetailScreen(
     viewModel: FundViewModel,
     onBackClick: () -> Unit
 ) {
-    val fundDetails by viewModel.fundDetails.collectAsState()
-    val isLoading by viewModel.isLoading.collectAsState()
-    val error by viewModel.error.collectAsState()
-    val watchlistFolders by viewModel.watchlistFolders.collectAsState()
-    val isInWatchlist by viewModel.isFundInWatchlist(schemeCode).collectAsState(initial = false)
+    val fundDetailUiState by viewModel.fundDetailUiState.collectAsStateWithLifecycle()
+    val watchlistFolders by viewModel.watchlistFolders.collectAsStateWithLifecycle()
+    val isInWatchlist by viewModel.isFundInWatchlist(schemeCode).collectAsStateWithLifecycle(initialValue = false)
 
     var showBottomSheet by remember { mutableStateOf(false) }
 
@@ -87,14 +86,18 @@ fun FundDetailScreen(
         }
     ) { paddingValues ->
         Box(modifier = Modifier.padding(paddingValues)) {
-            if (isLoading) {
-                LoadingState()
-            } else if (error != null) {
-                ErrorState(
-                    message = error ?: "Failed to load details",
-                    onRetry = { viewModel.fetchFundDetails(schemeCode) })
-            } else {
-                fundDetails?.let { details ->
+            when (val state = fundDetailUiState) {
+                is FundDetailUiState.Loading -> {
+                    LoadingState()
+                }
+                is FundDetailUiState.Error -> {
+                    ErrorState(
+                        message = state.message,
+                        onRetry = { viewModel.fetchFundDetails(schemeCode) }
+                    )
+                }
+                is FundDetailUiState.Success -> {
+                    val details = state.details
                     Column(
                         modifier = Modifier
                             .fillMaxSize()
@@ -205,10 +208,11 @@ fun FundDetailScreen(
                 folders = watchlistFolders,
                 onDismiss = { showBottomSheet = false },
                 onFolderSelected = { folderId ->
-                    fundDetails?.let { details ->
+                    val state = fundDetailUiState
+                    if (state is FundDetailUiState.Success) {
                         viewModel.addFundToWatchlist(
                             folderId,
-                            FundSearchResult(schemeCode, details.meta.schemeName)
+                            FundSearchResult(schemeCode, state.details.meta.schemeName)
                         )
                     }
                     showBottomSheet = false

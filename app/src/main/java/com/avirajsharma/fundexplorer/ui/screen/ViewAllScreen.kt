@@ -28,7 +28,6 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -39,10 +38,12 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.avirajsharma.fundexplorer.data.model.FundSearchResult
 import com.avirajsharma.fundexplorer.ui.components.AddToWatchlistBottomSheet
 import com.avirajsharma.fundexplorer.ui.components.ErrorState
 import com.avirajsharma.fundexplorer.ui.components.LoadingState
+import com.avirajsharma.fundexplorer.ui.viewmodel.ExploreUiState
 import com.avirajsharma.fundexplorer.ui.viewmodel.FundViewModel
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -53,16 +54,13 @@ fun ViewAllScreen(
     onFundClick: (Int) -> Unit,
     onBack: () -> Unit
 ) {
-    val categoryFunds by viewModel.categoryFunds.collectAsState()
-    val funds = categoryFunds[category] ?: emptyList()
-    val isLoading by viewModel.isLoading.collectAsState()
-    val error by viewModel.error.collectAsState()
-    val watchlistFolders by viewModel.watchlistFolders.collectAsState()
+    val exploreUiState by viewModel.exploreUiState.collectAsStateWithLifecycle()
+    val watchlistFolders by viewModel.watchlistFolders.collectAsStateWithLifecycle()
 
     var selectedFundForWatchlist by remember { mutableStateOf<FundSearchResult?>(null) }
 
     LaunchedEffect(category) {
-        if (funds.isEmpty()) {
+        if (exploreUiState is ExploreUiState.Loading) {
             viewModel.fetchExploreData()
         }
     }
@@ -80,24 +78,30 @@ fun ViewAllScreen(
         }
     ) { paddingValues ->
         Box(modifier = Modifier.padding(paddingValues)) {
-            if (isLoading && funds.isEmpty()) {
-                LoadingState()
-            } else if (error != null && funds.isEmpty()) {
-                ErrorState(
-                    message = error ?: "Unknown error",
-                    onRetry = { viewModel.fetchExploreData() })
-            } else {
-                LazyColumn(
-                    modifier = Modifier.fillMaxSize(),
-                    contentPadding = PaddingValues(16.dp),
-                    verticalArrangement = Arrangement.spacedBy(12.dp)
-                ) {
-                    items(funds) { fund ->
-                        FundListItem(
-                            fund = fund,
-                            onClick = { onFundClick(fund.schemeCode) },
-                            onAddClick = { selectedFundForWatchlist = fund }
-                        )
+            when (val state = exploreUiState) {
+                is ExploreUiState.Loading -> {
+                    LoadingState()
+                }
+                is ExploreUiState.Error -> {
+                    ErrorState(
+                        message = state.message,
+                        onRetry = { viewModel.fetchExploreData() }
+                    )
+                }
+                is ExploreUiState.Success -> {
+                    val funds = state.categoryFunds[category] ?: emptyList()
+                    LazyColumn(
+                        modifier = Modifier.fillMaxSize(),
+                        contentPadding = PaddingValues(16.dp),
+                        verticalArrangement = Arrangement.spacedBy(12.dp)
+                    ) {
+                        items(funds) { fund ->
+                            FundListItem(
+                                fund = fund,
+                                onClick = { onFundClick(fund.schemeCode) },
+                                onAddClick = { selectedFundForWatchlist = fund }
+                            )
+                        }
                     }
                 }
             }
