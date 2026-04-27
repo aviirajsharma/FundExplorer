@@ -6,7 +6,7 @@ experience for managing your fund watchlists.
 
 ## Download APK
 
-[⬇️ Download FundExplorer-v1.0 APK](https://github.com/avirajsharma/FundExplorer/releases)
+[⬇️ Download FundExplorer APK](https://github.com/aviirajsharma/FundExplorer/raw/main/apk/fund_explorer.apk))
  
 ---
 
@@ -49,7 +49,7 @@ experience for managing your fund watchlists.
 <table>
   <tr>
     <td align="center">
-      <a href="">
+      <a href="https://drive.google.com/file/d/1ZBdXGmSSRBPOq1MqjNEI9zJfca9pMHTA/view?usp=sharing">
         🎥 Watch App Demo
       </a>
     </td>
@@ -66,6 +66,7 @@ experience for managing your fund watchlists.
 - **Fund Details** — View comprehensive details about each fund to make informed decisions.
 - **Watchlists** — Create custom watchlist folders to organize and track your favorite funds.
 - **Offline Support** — Local caching of watchlists using Room database.
+- **Theme Support** — Seamlessly switch between Light and Dark modes with persistent preferences using DataStore.
 
 ---
 
