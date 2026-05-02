@@ -35,9 +35,9 @@ import com.avirajsharma.fundexplorer.ui.screen.SearchScreen
 import com.avirajsharma.fundexplorer.ui.screen.ViewAllScreen
 import com.avirajsharma.fundexplorer.ui.screen.WatchlistFolderDetailScreen
 import com.avirajsharma.fundexplorer.ui.screen.WatchlistScreen
-import com.avirajsharma.fundexplorer.ui.theme.FundExplorerTheme
 import com.avirajsharma.fundexplorer.ui.viewmodel.FundViewModel
 import com.avirajsharma.fundexplorer.ui.viewmodel.ThemeViewModel
+import com.example.compose.FundExplorerTheme
 import dagger.hilt.android.AndroidEntryPoint
 
 @AndroidEntryPoint
@@ -52,7 +52,11 @@ class MainActivity : ComponentActivity() {
             
             val useDarkTheme = isDarkModePreference ?: isSystemInDarkTheme()
 
-            FundExplorerTheme(darkTheme = useDarkTheme) {
+            // Set dynamicColor to false to use your custom theme colors
+            FundExplorerTheme(
+                darkTheme = useDarkTheme,
+                dynamicColor = false
+            ) {
                 val navController = rememberNavController()
                 val viewModel: FundViewModel = hiltViewModel()
 
